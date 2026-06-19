@@ -6,6 +6,7 @@ import Scene from './Scene';
 type Mode = 'signup' | 'login';
 
 export default function Home() {
+  const RAIL = 'https://memelli-bar-control.up.railway.app';
   const [ask, setAsk] = useState('');
   const [reply, setReply] = useState('');
   const [busy, setBusy] = useState(false);
@@ -26,7 +27,7 @@ export default function Home() {
 
   async function check() {
     try {
-      const r = await fetch('/api/auth/whoami', { credentials: 'include' });
+      const r = await fetch(RAIL + '/api/auth/whoami', { credentials: 'include' });
       const j = await r.json();
       if (j && j.ok && j.user) {
         setSignedIn(true);
@@ -50,7 +51,7 @@ export default function Home() {
     setReply('Memelli is thinking…');
     setAsk('');
     try {
-      const r = await fetch('/api/mellie/chat', {
+      const r = await fetch(RAIL + '/api/mellie/chat', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -70,7 +71,7 @@ export default function Home() {
     setWorking(true);
     setMsgGood(false);
     setMsg(mode === 'login' ? 'Signing in…' : 'Creating…');
-    const url = mode === 'login' ? '/api/auth/login' : '/api/signup';
+    const url = mode === 'login' ? RAIL + '/api/auth/login' : RAIL + '/api/signup';
     const body =
       mode === 'login'
         ? { email: email.trim(), password }
@@ -102,7 +103,7 @@ export default function Home() {
   }
 
   async function logout() {
-    await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+    await fetch(RAIL + '/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     setSignedIn(false);
     setWho('');
   }
