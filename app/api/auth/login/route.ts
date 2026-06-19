@@ -1,17 +1,11 @@
 import { NextResponse } from 'next/server';
 import { pool, SCHEMA } from '@/lib/db';
-import {
-  verifyPassword,
-  newSessionToken,
-  createSession,
-  cookieString,
-  ipOf,
-  uaOf,
-} from '@/lib/auth';
+import { verifyPassword, newSessionToken, createSession, cookieString, ipOf, uaOf } from '@/lib/auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// Byte-compatible with live auth: reads control_store.app_users, single salt:hash password_hash.
 export async function POST(req: Request) {
   let b: any = {};
   try {
@@ -24,27 +18,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: 'email + password required' }, { status: 400 });
   }
 
-  const u = await pool.query(
-    `SELECT id, password_salt, password_hash FROM ${SCHEMA}.users WHERE email=$1`,
-    [email],
-  );
+  const u = await pool.query(`SELECT id, password_hash FROM ${SCHEMA}.app_users WHERE email=$1`, [email]);
   const row = u.rows[0];
-  if (!row || !verifyPassword(b.password, row.password_salt, row.password_hash)) {
+  if (!row || !verifyPassword(b.password, row.password_hash)) {
     return NextResponse.json({ ok: false, error: 'invalid credentials' }, { status: 401 });
   }
 
   const token = newSessionToken();
   await createSession(token, row.id, ipOf(req), uaOf(req));
-
-  // best-effort login bookkeeping (columns exist on users)
-  pool
-    .query(
-      `UPDATE ${SCHEMA}.users
-         SET last_login_at=NOW(), last_login_ip=$2, login_count=COALESCE(login_count,0)+1
-       WHERE id=$1`,
-      [row.id, ipOf(req)],
-    )
-    .catch(() => {});
 
   const res = NextResponse.json({ ok: true, user_id: row.id, token });
   res.headers.set('Set-Cookie', cookieString(token));
