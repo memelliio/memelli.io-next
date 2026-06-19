@@ -1,0 +1,2 @@
+# keeps public/ in the repo so the Dockerfile COPY of /app/public always succeeds
+# (prevents the "minimum shell" deploy where static assets are missing)
